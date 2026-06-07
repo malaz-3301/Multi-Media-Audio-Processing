@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Windows.Forms;
+using OpenTK.Graphics.ES20;
 
 namespace WinFormsApp1
 {
@@ -20,17 +21,29 @@ namespace WinFormsApp1
         private ComboBox quantLevelsBox;
         private NumericUpDown quantFactorInput;
         private NumericUpDown stepSizeInput;
+        // progress and Cancellation
+        private Panel progressPanel;
+        private ProgressBar progressBar;
+        private Label statusLabel;
+        private CancellationTokenSource? cts;
+        private Button cancelBtn;
+        private int sampleRate;
+        private CompressionChart compChart;
+
+
+        public Func<CompressionSettings, IProgress<int>, CancellationToken, Task> CompressionTask { get; set; }
 
         public CompressionSettings Result { get; private set; }
 
-        public CompressionDialog()
+        public CompressionDialog(int sampleRate)
         {
             Text = "Compression Settings";
-            Width = 420;
-            Height = 340;
+            Width = 650;
+            Height = 520;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             StartPosition = FormStartPosition.CenterParent;
+            this.sampleRate = sampleRate;
 
             // ---------------- TYPE ----------------
 
@@ -54,7 +67,7 @@ namespace WinFormsApp1
             sampleRateInput.SetBounds(150, 60, 120, 20);
             sampleRateInput.Minimum = 8000;
             sampleRateInput.Maximum = 96000;
-            sampleRateInput.Value = 44100;
+            sampleRateInput.Value = sampleRate;
             sampleRateInput.Increment = 1000;
 
             // ---------------- SAVE PATH ----------------
@@ -84,6 +97,9 @@ namespace WinFormsApp1
             okBtn.SetBounds(20, 260, 80, 30);
             okBtn.Click += OkBtn_Click;
 
+
+            BuildProgressPanel();
+
             // ---------------- ADD CONTROLS ----------------
 
             Controls.Add(typeLabel);
@@ -98,6 +114,7 @@ namespace WinFormsApp1
 
             Controls.Add(settingsPanel);
             Controls.Add(okBtn);
+            Controls.Add(progressPanel);
 
             Load += CompressionDialog_Load;
         }
@@ -223,10 +240,51 @@ namespace WinFormsApp1
             settingsPanel.Controls.Add(stepSizeInput);
         }
 
-        // ---------------- OK ----------------
+        // ---------------- PROGRESS PANEL ----------------
 
-        private void OkBtn_Click(object? sender, EventArgs e)
+        private void BuildProgressPanel()
         {
+            progressPanel = new Panel();
+            progressPanel.SetBounds(0, 0, Width, Height);
+            progressPanel.Visible = false; 
+
+            
+            statusLabel = new Label();
+            statusLabel.Text = "Compressing files, please wait...";
+            statusLabel.SetBounds(25, 20, 584, 25); 
+            statusLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            statusLabel.Font = new System.Drawing.Font(statusLabel.Font.FontFamily, 10f, System.Drawing.FontStyle.Bold);
+
+           
+            progressBar = new ProgressBar();
+            progressBar.SetBounds(25, 50, 584, 30); 
+            progressBar.Minimum = 0;
+            progressBar.Maximum = 100;
+            progressBar.Value = 0;
+
+           
+            cancelBtn = new Button();
+            cancelBtn.Text = "Cancel";
+            cancelBtn.SetBounds(275, 95, 100, 32); 
+            cancelBtn.Click += CancelBtn_Click;
+
+            
+            compChart = new CompressionChart();
+
+            
+            compChart.formsPlot.SetBounds(20, 145, 594, 310);
+
+            progressPanel.Controls.Add(statusLabel);
+            progressPanel.Controls.Add(progressBar);
+            progressPanel.Controls.Add(cancelBtn);
+            progressPanel.Controls.Add(compChart.formsPlot);
+        }
+
+
+        private async  void OkBtn_Click(object? sender, EventArgs e)
+        {
+            
+
             if (string.IsNullOrWhiteSpace(savePathBox.Text))
             {
                 MessageBox.Show(
@@ -253,8 +311,99 @@ namespace WinFormsApp1
                 StepSize = stepSizeInput != null ? (float)stepSizeInput.Value : 0f
             };
 
-            DialogResult = DialogResult.OK;
-            Close();
+            ShowProgressPanel();
+            await RunCompression();
+
+        }
+
+        private void ShowProgressPanel() {
+            foreach (Control ctrl in Controls)
+            {
+                if (ctrl != progressPanel) ctrl.Visible = false;
+            }
+            progressPanel.Visible = true;
+            Text = "Running Compression...";
+        }
+
+        private async Task RunCompression() {
+            var progressHandler = new Progress<int>(percent =>
+            {
+                progressBar.Value = Math.Min(100, Math.Max(0, percent));
+                statusLabel.Text = $"Compressing... {percent}% completed.";
+            });
+
+            cts = new CancellationTokenSource();
+
+            try
+            {
+                if (CompressionTask != null)
+                {
+                    await Task.Run(async()=> await CompressionTask(Result, progressHandler, cts.Token));
+
+                    showCompressionSuccess();
+                    DialogResult = DialogResult.OK;
+                    Close();
+                }
+                else
+                {
+                    MessageBox.Show("No compression backend linked.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    ResetUI();
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                MessageBox.Show("Compression operation was cancelled.", "Cancelled", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                ResetUI();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"An error occurred: {ex.Message}", "Compression Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                ResetUI();
+            }
+            finally
+            {
+                cts?.Dispose();
+                cts = null;
+            }
+        }
+
+        private void showCompressionSuccess()
+        {
+            
+            DialogResult choice = MessageBox.Show(
+                "Compression completed successfully!\n\nWould you like to view the detailed compression report?",
+                "Success",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+
+           
+            if (choice == DialogResult.Yes)
+            {
+                string reportText = CompressionReporter.GenerateReport();
+
+                MessageBox.Show(
+                    reportText,
+                    "Compression Summary Report",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
+        }
+
+        private void ResetUI()
+        {
+            progressPanel.Visible = false;
+            progressBar.Value = 0;
+            Text = "Compression Settings";
+            foreach (Control ctrl in Controls)
+            {
+                if (ctrl != progressPanel) ctrl.Visible = true;
+            }
+        }
+
+
+        private void CancelBtn_Click(object? sender, EventArgs e)
+        {
+            cts?.Cancel();
         }
     }
 }

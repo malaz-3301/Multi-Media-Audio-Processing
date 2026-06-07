@@ -11,6 +11,8 @@
   <ItemGroup>
     <PackageReference Include="Emgu.CV" Version="4.13.0.5924" />
     <PackageReference Include="NAudio" Version="2.3.0" />
+    <PackageReference Include="ScottPlot" Version="5.1.58" />
+    <PackageReference Include="ScottPlot.WinForms" Version="5.1.58" />
   </ItemGroup>
 
 </Project>

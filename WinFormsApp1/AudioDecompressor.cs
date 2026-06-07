@@ -29,23 +29,23 @@ public class AudioDecompressor
         return samples;
     }
 
-  
-    public static float[] Inverse_DeltaModulation(float firstSample, byte[] bits, float stepSize = 0.01f)
-    {
-        float[] samples = new float[bits.Length];
 
+    public static float[] Inverse_DeltaModulation(float firstSample, byte[] packedBits, int totalSamples, float stepSize = 0.01f)
+    {
         
+        float[] samples = new float[totalSamples];
         samples[0] = firstSample;
 
-        for (int i = 1; i < bits.Length; i++)
+        for (int i = 1; i < totalSamples; i++)
         {
             
-            bool isUp = bits[i - 1] == 1;
+            int byteIndex = (i - 1) / 8;
+            int bitIndex = (i - 1) % 8;
 
-            
+
+            bool isUp = ((packedBits[byteIndex] >> (7 - bitIndex)) & 1) == 1;
+
             float change = isUp ? stepSize : -stepSize;
-
-            
             float reconstructedSample = samples[i - 1] + change;
 
             samples[i] = Math.Clamp(reconstructedSample, -1f, 1f);
@@ -54,7 +54,7 @@ public class AudioDecompressor
         return samples;
     }
 
-    
+
     public static float[] Inverse_DPCM(float firstSample, float quantizationFactor, sbyte[] compressedSamples)
     {
         

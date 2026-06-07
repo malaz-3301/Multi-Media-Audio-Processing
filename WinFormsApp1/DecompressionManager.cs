@@ -9,34 +9,49 @@ namespace WinFormsApp1
 {
     public class DecompressionManager
     {
-        public static void HandleFileDecompression(string filePath,string outputPath) {
-            float[] samples=[];
-            
-            if (filePath.EndsWith(".nlq"))  samples = HandleNonLinearQuant(filePath);
-            if (filePath.EndsWith(".dlt"))  samples = HandleDelta(filePath);
-            if (filePath.EndsWith(".dpcm")) samples = HandleDPCM(filePath);
-            
-            if (samples.Length == 0) return;
-            
-            FileWriter.ExportFloatArrayToWav(outputPath,samples);
+        public static void HandleFileDecompression(string filePath, string outputPath)
+        {
+            (AudioFileInfo audioFileInfo, float[] decompressedSamples) InvResults = (audioFileInfo: new AudioFileInfo(), decompressedSamples: []);
 
-        }
-        static float[] HandleNonLinearQuant(string filePath) {
-            var decompResult = DecompressLoader.LoadNonLinearQuant(filePath);
-            float[] decompressedSamples = AudioDecompressor.Inverse_NonLinear_Quantizer(decompResult.bytes,decompResult.quantizationLevels);
-            return decompressedSamples;
-        }
-        static float[] HandleDelta(string filePath)
-        {
-            var decompResult = DecompressLoader.LoadDelta(filePath);
-            float[] decompressedSamples = AudioDecompressor.Inverse_DeltaModulation(decompResult.firstSample,decompResult.bytes,stepSize:decompResult.stepSize);
-            return decompressedSamples;
-        }
-        static float[] HandleDPCM(string filePath)
-        {
-            var decompResult = DecompressLoader.LoadDPCM(filePath);
-            float[] decompressedSamples = AudioDecompressor.Inverse_DPCM(decompResult.firstSample, decompResult.quantizationFactor, decompResult.bytes);
-            return decompressedSamples;
+            if (filePath.EndsWith(".nlq")) InvResults = HandleNonLinearQuant(filePath);
+            if (filePath.EndsWith(".dlt")) InvResults = HandleDelta(filePath);
+            if (filePath.EndsWith(".dpcm")) InvResults = HandleDPCM(filePath);
+
+            if (InvResults.decompressedSamples.Length == 0) return;
+
+            if (!InvResults.audioFileInfo.isMP3)
+            {
+                FileWriter.ExportFloatArrayToWav(outputPath, InvResults.decompressedSamples,
+                    sampleRate: InvResults.audioFileInfo.bitsPerSample,
+                    channels: InvResults.audioFileInfo.channels,
+                    bitsPerSample: InvResults.audioFileInfo.bitsPerSample);
+            }
+            else
+            {
+                FileWriter.ExportFloatArrayToMP3(outputPath, InvResults.decompressedSamples,
+                    sampleRate: InvResults.audioFileInfo.bitsPerSample,
+                    channels: InvResults.audioFileInfo.channels,
+                    bitRate: InvResults.audioFileInfo.bitRate);
+
+            }
+            static (AudioFileInfo audioFileInfo, float[] decompressedSamples) HandleNonLinearQuant(string filePath)
+            {
+                var decompResult = DecompressLoader.LoadNonLinearQuant(filePath);
+                float[] decompressedSamples = AudioDecompressor.Inverse_NonLinear_Quantizer(decompResult.bytes, decompResult.quantizationLevels);
+                return (decompResult.audioFileInfo, decompressedSamples);
+            }
+            static (AudioFileInfo audioFileInfo, float[] decompressedSamples) HandleDelta(string filePath)
+            {
+                var decompResult = DecompressLoader.LoadDelta(filePath);
+                float[] decompressedSamples = AudioDecompressor.Inverse_DeltaModulation(decompResult.firstSample, decompResult.bytes, decompResult.totalSamples, stepSize: decompResult.stepSize);
+                return (decompResult.audioFileInfo, decompressedSamples);
+            }
+            static (AudioFileInfo audioFileInfo, float[] decompressedSamples) HandleDPCM(string filePath)
+            {
+                var decompResult = DecompressLoader.LoadDPCM(filePath);
+                float[] decompressedSamples = AudioDecompressor.Inverse_DPCM(decompResult.firstSample, decompResult.quantizationFactor, decompResult.bytes);
+                return (decompResult.audioFileInfo, decompressedSamples); ;
+            }
         }
     }
 }

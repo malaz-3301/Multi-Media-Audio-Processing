@@ -1,5 +1,6 @@
+using System.Threading.Channels;
 using NAudio.Wave;
-
+using System.Windows.Forms;
 namespace WinFormsApp1
 {
     public partial class Form1 : Form
@@ -10,6 +11,8 @@ namespace WinFormsApp1
 
         private Panel dropPanel;
         private Label fileStatusLabel;
+
+        private AudioFileInfo audioInfo;
 
         public Form1()
         {
@@ -69,7 +72,7 @@ namespace WinFormsApp1
             dropPanel.BorderStyle = BorderStyle.FixedSingle;
             dropPanel.AllowDrop = true;
 
-            Label dropText = new Label();
+            System.Windows.Forms.Label dropText = new System.Windows.Forms.Label();
             dropText.Text = "Drag & Drop Audio File Here";
             dropText.Dock = DockStyle.Fill;
             dropText.TextAlign = ContentAlignment.MiddleCenter;
@@ -95,10 +98,10 @@ namespace WinFormsApp1
             if (!ValidateFileLoaded())
                 return;
 
-            reader?.Dispose();
+            outputDev?.Stop();
             outputDev?.Dispose();
 
-            reader = new AudioFileReader(file!);
+            reader!.Position = 0;
 
             outputDev = new WaveOutEvent();
             outputDev.Init(reader);
@@ -123,12 +126,37 @@ namespace WinFormsApp1
             if (dialog.ShowDialog() == DialogResult.OK)
             {
                 file = dialog.FileName;
+                LoadReader(file);  
 
                 fileStatusLabel.Text =
                     $"Audio File Loaded: {Path.GetFileName(file)}";
-
-
             }
+        }
+
+        private void LoadReader(string? file)
+        {
+            if (file == null)
+                return;
+
+            if (ValidateFileIsOfCompressType(false))
+            {
+                return;
+            }
+
+            outputDev?.Stop();
+            outputDev?.Dispose();
+            outputDev = null;
+
+            reader?.Dispose();
+            reader = new AudioFileReader(file);
+            FileInfo fileInfo = new FileInfo(file!);
+            int sampleRate = reader.WaveFormat.SampleRate;
+            int channels = reader.WaveFormat.Channels;
+            int bitsPerSample = reader.WaveFormat.BitsPerSample;
+            int bitRate = (reader.WaveFormat.AverageBytesPerSecond * 8) / 1000;
+            bool isMP3 = file!.ToLower().EndsWith(".mp3");
+            audioInfo = new AudioFileInfo(sampleRate,channels,bitsPerSample,bitRate,isMP3);
+            
         }
 
         private void LoadAudioInfo()
@@ -143,9 +171,9 @@ namespace WinFormsApp1
                     $"File Name: {fileInfo.Name}\n" +
                     $"File Size: {fileInfo.Length / 1024.0:F2} KB\n" +
                     $"Duration: {audioReader.TotalTime:mm\\:ss}\n" +
-                    $"Sample Rate: {audioReader.WaveFormat.SampleRate} Hz\n" +
-                    $"Channels: {audioReader.WaveFormat.Channels}\n" +
-                    $"Bit Rate: {(audioReader.WaveFormat.AverageBytesPerSecond * 8) / 1000} kbps\n" +
+                    $"Sample Rate: {audioInfo.sampleRate} Hz\n" +
+                    $"Channels: {audioInfo.channels}\n" +
+                    $"Bit Rate: {audioInfo.bitRate} kbps\n" +
                     $"Encoding Type: {audioReader.WaveFormat.Encoding}";
 
                 ShowDialogMessage(
@@ -172,7 +200,9 @@ namespace WinFormsApp1
                 return;
 
             file = files[0];
-
+            LoadReader(file);
+            
+           
             fileStatusLabel.Text =
                 $"Loaded: {Path.GetFileName(file)}";
 
@@ -193,7 +223,6 @@ namespace WinFormsApp1
 
                 return false;
             }
-
             return true;
         }
 
@@ -233,25 +262,32 @@ namespace WinFormsApp1
         {
             if (!ValidateFileLoaded())
                 return;
-            using (var dlg = new CompressionDialog())
-            {
-                if (dlg.ShowDialog() == DialogResult.OK)
-                {
-                    CompressionSettings settings = dlg.Result;
 
-                    MessageBox.Show(
-                        $"Type: {settings.Type}\n" +
-                        $"Quant: {settings.QuantizationFactor}\n" +
-                        $"Step: {settings.StepSize}"
-                    );
-                    if(reader!=null)
-                    CompressionManager.CompressAudioFile(reader,settings);
-                }
-            }
+            using var dlg = new CompressionDialog(audioInfo.sampleRate);
+
+            dlg.CompressionTask = async (
+            settings,
+            progress,
+            token) =>
+            {    
+              using var compressionReader =  new AudioFileReader(file!);
+              CompressionManager.CompressAudioFile(
+                compressionReader,
+                settings,
+                progress,
+                token,
+                file!,
+                audioInfo
+                );
+            };
+
+            dlg.ShowDialog();
         }
-        private bool ValidateFileIsOfCompressType() {
+        private bool ValidateFileIsOfCompressType(bool showDialog=true) {
             string selectedFile = file ?? "";
             if (selectedFile.EndsWith("nlq")||selectedFile.EndsWith("dpcm")||selectedFile.EndsWith("dlt")) return true;
+            
+            if(showDialog)
             ShowDialogMessage(
                    "Please load a file of the following extensions:\"dpcm\",\"nlq\",\"dlt\"",
                    "File extension Error",
