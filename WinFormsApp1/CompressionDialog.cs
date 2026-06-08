@@ -99,18 +99,8 @@ namespace WinFormsApp1
             Controls.Add(resetBtn);
             Controls.Add(progressPanel);
 
-            Load += CompressionDialog_Load;
-        }
-
-        private void CompressionDialog_Load(object? sender, EventArgs e)
-        {
-            if (typeBox.Items.Count == 0)
-                return;
-
-            if (typeBox.SelectedIndex < 0)
-                typeBox.SelectedIndex = 0;
-
-            BuildUI((CompressionTypes)typeBox.SelectedItem);
+            typeBox.SelectedItem = CompressionTypes.NonlinearQuant;
+            BuildUI(CompressionTypes.NonlinearQuant);
         }
 
         private void BrowseBtn_Click(object? sender, EventArgs e)
