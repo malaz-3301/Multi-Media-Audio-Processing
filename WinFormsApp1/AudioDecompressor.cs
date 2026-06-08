@@ -20,33 +20,19 @@ public class AudioDecompressor
         return samples;
     }
 
-    public static float[] Inverse_DeltaModulation(float[] firstSamples, byte[] packedBits, int totalSamples, float stepSize = 0.01f, int channels = 1)
+    public static float[] Inverse_DeltaModulation(float firstSample, byte[] packedBits, int totalSamples, float stepSize = 0.01f)
     {
-        if (totalSamples <= 0)
-            return Array.Empty<float>();
-
-        channels = Math.Max(1, channels);
         float[] samples = new float[totalSamples];
-        float[] reconstructed = new float[channels];
-        int firstCount = Math.Min(firstSamples.Length, totalSamples);
+        samples[0] = firstSample;
 
-        for (int i = 0; i < firstCount; i++)
+        for (int i = 1; i < totalSamples; i++)
         {
-            samples[i] = Math.Clamp(firstSamples[i], -1f, 1f);
-            reconstructed[i % channels] = samples[i];
-        }
-
-        for (int i = firstCount; i < totalSamples; i++)
-        {
-            int packedIndex = i - firstCount;
-            int byteIndex = packedIndex / 8;
-            int bitIndex = packedIndex % 8;
-            int channel = i % channels;
-
+            int byteIndex = (i - 1) / 8;
+            int bitIndex = (i - 1) % 8;
             bool isUp = ((packedBits[byteIndex] >> (7 - bitIndex)) & 1) == 1;
             float change = isUp ? stepSize : -stepSize;
-            reconstructed[channel] = Math.Clamp(reconstructed[channel] + change, -1f, 1f);
-            samples[i] = reconstructed[channel];
+            float reconstructedSample = samples[i - 1] + change;
+            samples[i] = Math.Clamp(reconstructedSample, -1f, 1f);
         }
 
         return samples;
