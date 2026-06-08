@@ -296,13 +296,31 @@ namespace WinFormsApp1
             return false;
         }
 
-        private void decompressFile() {
+        private void decompressFile()
+        {
             if (!ValidateFileLoaded())
                 return;
+
             if (!ValidateFileIsOfCompressType())
                 return;
-            string outputPath = @"C:\Users\Ward\Desktop\reconstructed.wav";
-            DecompressionManager.HandleFileDecompression(file!,outputPath);
+
+            using SaveFileDialog saveDialog = new SaveFileDialog();
+
+            saveDialog.Title = "Choose Output File";
+            saveDialog.Filter = "All Files (*.*)|*.*";
+            saveDialog.AddExtension = false;
+            saveDialog.DefaultExt = "";
+            saveDialog.FileName = "reconstructed";
+
+            if (saveDialog.ShowDialog() == DialogResult.OK)
+            {
+                string selectedPath = saveDialog.FileName;
+
+                DecompressionManager.HandleFileDecompression(
+                    file!,
+                    selectedPath
+                );
+            }
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)

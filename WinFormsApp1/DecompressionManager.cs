@@ -21,6 +21,7 @@ namespace WinFormsApp1
 
             if (!InvResults.audioFileInfo.isMP3)
             {
+                outputPath += ".wav";
                 FileWriter.ExportFloatArrayToWav(outputPath, InvResults.decompressedSamples,
                     sampleRate: InvResults.audioFileInfo.sampleRate,
                     channels: InvResults.audioFileInfo.channels,
@@ -28,6 +29,7 @@ namespace WinFormsApp1
             }
             else
             {
+                outputPath += ".mp3";
                 FileWriter.ExportFloatArrayToMP3(outputPath, InvResults.decompressedSamples,
                     sampleRate: InvResults.audioFileInfo.sampleRate,
                     channels: InvResults.audioFileInfo.channels,
