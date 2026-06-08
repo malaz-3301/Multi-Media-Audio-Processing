@@ -43,14 +43,14 @@ namespace WinFormsApp1
             static (AudioFileInfo audioFileInfo, float[] decompressedSamples) HandleDelta(string filePath)
             {
                 var decompResult = DecompressLoader.LoadDelta(filePath);
-                float[] decompressedSamples = AudioDecompressor.Inverse_DeltaModulation(decompResult.firstSample, decompResult.bytes, decompResult.totalSamples, stepSize: decompResult.stepSize);
+                float[] decompressedSamples = AudioDecompressor.Inverse_DeltaModulation(decompResult.firstSamples, decompResult.bytes, decompResult.totalSamples, decompResult.stepSize, decompResult.audioFileInfo.channels);
                 return (decompResult.audioFileInfo, decompressedSamples);
             }
 
             static (AudioFileInfo audioFileInfo, float[] decompressedSamples) HandleDPCM(string filePath)
             {
                 var decompResult = DecompressLoader.LoadDPCM(filePath);
-                float[] decompressedSamples = AudioDecompressor.Inverse_DPCM(decompResult.firstSample, decompResult.quantizationFactor, decompResult.bytes);
+                float[] decompressedSamples = AudioDecompressor.Inverse_DPCM(decompResult.firstSamples, decompResult.quantizationFactor, decompResult.bytes, decompResult.audioFileInfo.channels);
                 return (decompResult.audioFileInfo, decompressedSamples);
             }
         }
