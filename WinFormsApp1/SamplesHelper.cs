@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using NAudio.Wave;
 
@@ -9,9 +8,7 @@ namespace WinFormsApp1
         public static float[] GetResampledSamples(AudioFileReader reader, int targetSampleRate)
         {
             if (reader.WaveFormat.SampleRate == targetSampleRate)
-            {
-                return ConvertToMono(GetSamples(reader), reader.WaveFormat.Channels);
-            }
+                return GetSamples(reader);
 
             reader.Position = 0;
 
@@ -28,35 +25,10 @@ namespace WinFormsApp1
             while ((samplesRead = sampleProvider.Read(buffer, 0, buffer.Length)) > 0)
             {
                 for (int i = 0; i < samplesRead; i++)
-                {
                     samples.Add(buffer[i]);
-                }
             }
 
-            return ConvertToMono(samples.ToArray(), reader.WaveFormat.Channels);
-        }
-
-        public static float[] ConvertToMono(float[] samples, int channels)
-        {
-            if (channels <= 1)
-                return samples;
-
-            int frames = samples.Length / channels;
-            float[] mono = new float[frames];
-
-            for (int frame = 0; frame < frames; frame++)
-            {
-                float sum = 0f;
-
-                for (int channel = 0; channel < channels; channel++)
-                {
-                    sum += samples[(frame * channels) + channel];
-                }
-
-                mono[frame] = sum / channels;
-            }
-
-            return mono;
+            return samples.ToArray();
         }
 
         private static float[] GetSamples(AudioFileReader reader)
@@ -70,9 +42,7 @@ namespace WinFormsApp1
             while ((samplesRead = reader.Read(buffer, 0, buffer.Length)) > 0)
             {
                 for (int i = 0; i < samplesRead; i++)
-                {
                     samples.Add(buffer[i]);
-                }
             }
 
             return samples.ToArray();
