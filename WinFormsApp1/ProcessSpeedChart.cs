@@ -9,6 +9,7 @@ namespace WinFormsApp1
     public class CompressionChart
     {
         public FormsPlot formsPlot;
+
         public List<double> seconds = new List<double>();
         public List<double> samples = new List<double>();
         public List<double> compressionRatios = new List<double>();
@@ -29,10 +30,12 @@ namespace WinFormsApp1
         private void ConfigurePlotStyles()
         {
             formsPlot.Plot.Title("Compression Performance Analytics");
-            formsPlot.Plot.XLabel("Progress Updates");
-            formsPlot.Plot.Axes.Left.Label.Text = "Samples Processed";
+            formsPlot.Plot.XLabel("Seconds");
+
+            formsPlot.Plot.Axes.Left.Label.Text = "Samples Processed / Sec";
             formsPlot.Plot.Axes.Left.Label.ForeColor = ScottPlot.Color.FromHex("#2196F3");
-            formsPlot.Plot.Axes.Right.Label.Text = "Space Saved %";
+
+            formsPlot.Plot.Axes.Right.Label.Text = "Compression Rate(Space Saved %)";
             formsPlot.Plot.Axes.Right.Label.ForeColor = ScottPlot.Color.FromHex("#4CAF50");
         }
 
@@ -41,6 +44,7 @@ namespace WinFormsApp1
             seconds.Add(second);
             samples.Add(samplesProcessed);
             compressionRatios.Add(currentRatio);
+
             RefreshChart();
         }
 
@@ -55,19 +59,16 @@ namespace WinFormsApp1
             formsPlot.Plot.Clear();
             ConfigurePlotStyles();
 
-            if (seconds.Count == 0)
-                return;
+            if (seconds.Count == 0) return;
 
             var speedScatter = formsPlot.Plot.Add.Scatter(seconds.ToArray(), samples.ToArray());
             speedScatter.Color = ScottPlot.Color.FromHex("#2196F3");
             speedScatter.LineWidth = 2;
-            speedScatter.MarkerSize = 6;
             speedScatter.Axes.YAxis = formsPlot.Plot.Axes.Left;
 
             var ratioScatter = formsPlot.Plot.Add.Scatter(seconds.ToArray(), compressionRatios.ToArray());
             ratioScatter.Color = ScottPlot.Color.FromHex("#4CAF50");
             ratioScatter.LineWidth = 2;
-            ratioScatter.MarkerSize = 6;
             ratioScatter.Axes.YAxis = formsPlot.Plot.Axes.Right;
 
             formsPlot.Plot.Axes.AutoScale();
