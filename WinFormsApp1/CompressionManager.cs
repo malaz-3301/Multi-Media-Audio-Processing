@@ -108,8 +108,8 @@ public class CompressionManager
     static void handleDeltaCompress(AudioFileReader reader, CompressionSettings compSett, string outPath)
     {
         float[] samples = SamplesHelper.GetResampledSamples(reader, compSett.SampleRate);
-        var compResult = AudioCompressor.DeltaModulation(samples, compSett.StepSize);
-        FileSaver.SaveDeltaModulation(outPath, compResult.packedBits, compResult.firstSample, compSett.StepSize, compResult.totalSamples, compSett.SampleRate, audioInfo);
+        var compResult = AudioCompressor.DeltaModulation(samples, compSett.StepSize, audioInfo.channels);
+        FileSaver.SaveDeltaModulation(outPath, compResult.packedBits, compResult.firstSamples, compSett.StepSize, compResult.totalSamples, compSett.SampleRate, audioInfo);
     }
 
     static void handleNonLinearQuant(AudioFileReader reader, CompressionSettings compSett, string outPath)
@@ -123,8 +123,8 @@ public class CompressionManager
     {
         float[] samples = SamplesHelper.GetResampledSamples(reader, compSett.SampleRate);
         float quantFactor = compSett.QuantizationFactor;
-        var compResult = AudioCompressor.DPCM(samples, quantFactor);
-        FileSaver.SaveDPCM(outPath, compResult.firstSample, compResult.compressedSamples, quantFactor, compSett.SampleRate, audioInfo);
+        var compResult = AudioCompressor.DPCM(samples, quantFactor, audioInfo.channels);
+        FileSaver.SaveDPCM(outPath, compResult.firstSamples, compResult.compressedSamples, quantFactor, compSett.SampleRate, audioInfo);
     }
 
     private static void AddChartPoint(int percent)
