@@ -230,11 +230,11 @@ namespace WinFormsApp1
 
             stepSizeInput = new NumericUpDown();
             stepSizeInput.SetBounds(170, 10, 120, 20);
-            stepSizeInput.Minimum = 1;
-            stepSizeInput.Maximum = 256;
+            stepSizeInput.Minimum = -1;
+            stepSizeInput.Maximum = 1;
             stepSizeInput.DecimalPlaces = 2;
-            stepSizeInput.Increment = 0.1M;
-            stepSizeInput.Value = 1;
+            stepSizeInput.Increment = 0.01M;
+            stepSizeInput.Value = 0.01M;
 
             settingsPanel.Controls.Add(lbl);
             settingsPanel.Controls.Add(stepSizeInput);

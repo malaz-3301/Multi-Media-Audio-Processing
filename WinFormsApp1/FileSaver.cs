@@ -17,6 +17,7 @@ public class FileSaver
         writer.Write(info.channels);
         writer.Write(info.bitsPerSample);
         writer.Write(info.isMP3Numeric());
+        writer.Write(info.bitRate);
 
 
         byte[] rawBytes = (byte[])(object)bytes;
@@ -55,6 +56,7 @@ public class FileSaver
         writer.Write(info.channels);
         writer.Write(info.bitsPerSample);
         writer.Write(info.isMP3Numeric());
+        writer.Write(info.bitRate);
 
 
 

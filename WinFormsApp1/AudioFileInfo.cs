@@ -11,12 +11,15 @@ namespace WinFormsApp1
         public int sampleRate;
         public int bitsPerSample;
         public int channels;
+        public int bitRate;
         public bool isMP3;
 
-        public AudioFileInfo(int sampleRate, int channels, int bitsPerSample,bool isMP3) {
+        public AudioFileInfo() { }
+        public AudioFileInfo(int sampleRate, int channels, int bitsPerSample,int bitRate,bool isMP3) {
             this.sampleRate=sampleRate;
             this.bitsPerSample=bitsPerSample;
             this.channels=channels;
+            this.bitRate = bitRate;
             this.isMP3=isMP3;
         }
 

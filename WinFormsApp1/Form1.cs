@@ -174,6 +174,7 @@ namespace WinFormsApp1
                     $"Sample Rate: {audioInfo.sampleRate} Hz\n" +
                     $"Channels: {audioInfo.channels}\n" +
                     $"Bit Rate: {audioInfo.bitRate} kbps\n" +
+                    $"Bit Per Sample: {audioInfo.bitsPerSample} bits\n" +
                     $"Encoding Type: {audioReader.WaveFormat.Encoding}";
 
                 ShowDialogMessage(

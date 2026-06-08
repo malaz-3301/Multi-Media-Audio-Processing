@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Channels;
@@ -20,9 +21,8 @@ namespace WinFormsApp1
             int sampleRate= reader.ReadInt32();
             int channels = reader.ReadInt32();
             int bitsPerSample = reader.ReadInt32();
-            bool isMP3 = reader.ReadInt32()!=1;
+            bool isMP3 = reader.ReadInt32()==1;
             int bitRate = reader.ReadInt32();
-
 
             AudioFileInfo adI = new AudioFileInfo(sampleRate,channels,bitsPerSample,bitRate,isMP3);
 
@@ -49,7 +49,7 @@ namespace WinFormsApp1
             int sampleRate= reader.ReadInt32();
             int channels = reader.ReadInt32();
             int bitsPerSample = reader.ReadInt32();
-            bool isMP3 = reader.ReadInt32() != 1;
+            bool isMP3 = reader.ReadInt32() == 1;
             int bitRate = reader.ReadInt32();
 
 
@@ -79,7 +79,7 @@ namespace WinFormsApp1
             int sampleRate= reader.ReadInt32();
             int channels = reader.ReadInt32();
             int bitsPerSample = reader.ReadInt32();
-            bool isMP3 = reader.ReadInt32() != 1;
+            bool isMP3 = reader.ReadInt32() == 1;
             int bitRate = reader.ReadInt32();
 
 

@@ -22,14 +22,14 @@ namespace WinFormsApp1
             if (!InvResults.audioFileInfo.isMP3)
             {
                 FileWriter.ExportFloatArrayToWav(outputPath, InvResults.decompressedSamples,
-                    sampleRate: InvResults.audioFileInfo.bitsPerSample,
+                    sampleRate: InvResults.audioFileInfo.sampleRate,
                     channels: InvResults.audioFileInfo.channels,
                     bitsPerSample: InvResults.audioFileInfo.bitsPerSample);
             }
             else
             {
                 FileWriter.ExportFloatArrayToMP3(outputPath, InvResults.decompressedSamples,
-                    sampleRate: InvResults.audioFileInfo.bitsPerSample,
+                    sampleRate: InvResults.audioFileInfo.sampleRate,
                     channels: InvResults.audioFileInfo.channels,
                     bitRate: InvResults.audioFileInfo.bitRate);
 
