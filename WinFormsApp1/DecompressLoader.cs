@@ -47,16 +47,11 @@ namespace WinFormsApp1
             return (firstSamples, ToSBytes(rawBytes), quantizationFactor, audioInfo);
         }
 
-        public static (float[] firstSamples, byte[] bytes, float stepSize, int totalSamples, AudioFileInfo audioFileInfo) LoadDelta(string filePath)
+        public static (float firstSample, byte[] bytes, float stepSize, int totalSamples, AudioFileInfo audioFileInfo) LoadDelta(string filePath)
         {
             using BinaryReader reader = new BinaryReader(File.OpenRead(filePath));
 
-            int firstSamplesLength = reader.ReadInt32();
-            float[] firstSamples = new float[firstSamplesLength];
-
-            for (int i = 0; i < firstSamples.Length; i++)
-                firstSamples[i] = reader.ReadSingle();
-
+            float firstSample = reader.ReadSingle();
             float stepSize = reader.ReadSingle();
             int totalSamples = reader.ReadInt32();
             int sampleRate = reader.ReadInt32();
@@ -64,12 +59,11 @@ namespace WinFormsApp1
             int bitsPerSample = reader.ReadInt32();
             bool isMP3 = reader.ReadInt32() == 1;
             int bitRate = reader.ReadInt32();
-            int packedLength = reader.ReadInt32();
 
             AudioFileInfo audioInfo = new AudioFileInfo(sampleRate, channels, bitsPerSample, bitRate, isMP3);
-            byte[] rawBytes = reader.ReadBytes(packedLength);
+            byte[] rawBytes = reader.ReadBytes(totalSamples);
 
-            return (firstSamples, rawBytes, stepSize, totalSamples, audioInfo);
+            return (firstSample, rawBytes, stepSize, totalSamples, audioInfo);
         }
 
         private static sbyte[] ToSBytes(byte[] values)
