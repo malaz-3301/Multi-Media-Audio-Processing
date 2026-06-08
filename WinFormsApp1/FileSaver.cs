@@ -11,37 +11,43 @@ public class FileSaver
         writer.Write(quantizationLevels);
         writer.Write(bytes.Length);
         writer.Write(sampleRate);
-        writer.Write(GetOutputChannels(info));
+        writer.Write(Math.Max(1, info.channels));
         writer.Write(info.bitsPerSample);
         writer.Write(info.isMP3Numeric());
         writer.Write(info.bitRate);
         writer.Write(ToBytes(bytes));
     }
 
-    public static void SaveDPCM(string filePath, float firstSample, sbyte[] compressedSamples, float quantizationFactor, int sampleRate, AudioFileInfo info)
+    public static void SaveDPCM(string filePath, float[] firstSamples, sbyte[] compressedSamples, float quantizationFactor, int sampleRate, AudioFileInfo info)
     {
         using BinaryWriter writer = new BinaryWriter(File.Create(filePath));
 
-        writer.Write(firstSample);
+        writer.Write(firstSamples.Length);
+        foreach (float sample in firstSamples)
+            writer.Write(sample);
+
         writer.Write(quantizationFactor);
         writer.Write(compressedSamples.Length);
         writer.Write(sampleRate);
-        writer.Write(GetOutputChannels(info));
+        writer.Write(Math.Max(1, info.channels));
         writer.Write(info.bitsPerSample);
         writer.Write(info.isMP3Numeric());
         writer.Write(info.bitRate);
         writer.Write(ToBytes(compressedSamples));
     }
 
-    public static void SaveDeltaModulation(string filePath, byte[] bits, float firstSample, float stepSize, int totalSamples, int sampleRate, AudioFileInfo info)
+    public static void SaveDeltaModulation(string filePath, byte[] bits, float[] firstSamples, float stepSize, int totalSamples, int sampleRate, AudioFileInfo info)
     {
         using BinaryWriter writer = new BinaryWriter(File.Create(filePath));
 
-        writer.Write(firstSample);
+        writer.Write(firstSamples.Length);
+        foreach (float sample in firstSamples)
+            writer.Write(sample);
+
         writer.Write(stepSize);
         writer.Write(totalSamples);
         writer.Write(sampleRate);
-        writer.Write(GetOutputChannels(info));
+        writer.Write(Math.Max(1, info.channels));
         writer.Write(info.bitsPerSample);
         writer.Write(info.isMP3Numeric());
         writer.Write(info.bitRate);
@@ -49,19 +55,12 @@ public class FileSaver
         writer.Write(bits);
     }
 
-    private static int GetOutputChannels(AudioFileInfo info)
-    {
-        return info.channels > 1 ? 1 : Math.Max(1, info.channels);
-    }
-
     private static byte[] ToBytes(sbyte[] values)
     {
         byte[] result = new byte[values.Length];
 
         for (int i = 0; i < values.Length; i++)
-        {
             result[i] = unchecked((byte)values[i]);
-        }
 
         return result;
     }
