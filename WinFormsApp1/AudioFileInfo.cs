@@ -1,5 +1,3 @@
-using System;
-
 namespace WinFormsApp1
 {
     public class AudioFileInfo
@@ -24,14 +22,6 @@ namespace WinFormsApp1
         public int isMP3Numeric()
         {
             return isMP3 ? 1 : 0;
-        }
-
-        public int GetEncoderBitRate()
-        {
-            if (bitRate <= 0)
-                return 128000;
-
-            return bitRate < 1000 ? bitRate * 1000 : bitRate;
         }
     }
 }
