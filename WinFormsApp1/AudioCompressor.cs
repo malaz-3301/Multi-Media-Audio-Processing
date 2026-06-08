@@ -63,7 +63,7 @@ public class AudioCompressor
 
     public static (float firstSample, byte[] packedBits, int totalSamples) DeltaModulation(float[] samples)
     {
-        return DeltaModulation(samples, CompressionSettings.CurrentDeltaStepSize);
+        return DeltaModulation(samples, 0.01f);
     }
 
     public static (float firstSample, byte[] packedBits, int totalSamples) DeltaModulation(float[] samples, float stepSize)
