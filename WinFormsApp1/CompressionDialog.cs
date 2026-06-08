@@ -43,9 +43,10 @@ namespace WinFormsApp1
             typeLabel.SetBounds(20, 20, 120, 20);
 
             typeBox = new ComboBox();
-            typeBox.DataSource = Enum.GetValues(typeof(CompressionTypes));
             typeBox.DropDownStyle = ComboBoxStyle.DropDownList;
             typeBox.SetBounds(150, 20, 220, 25);
+            typeBox.Items.AddRange(Enum.GetNames(typeof(CompressionTypes)));
+            typeBox.SelectedIndex = 0;
             typeBox.SelectedIndexChanged += TypeBox_SelectedIndexChanged;
 
             Label sampleRateLabel = new Label();
@@ -74,6 +75,7 @@ namespace WinFormsApp1
 
             settingsPanel = new Panel();
             settingsPanel.SetBounds(20, 140, 360, 100);
+            BuildUI(CompressionTypes.NonlinearQuant);
 
             okBtn = new Button();
             okBtn.Text = "OK";
@@ -98,21 +100,6 @@ namespace WinFormsApp1
             Controls.Add(okBtn);
             Controls.Add(resetBtn);
             Controls.Add(progressPanel);
-
-            typeBox.SelectedIndex = 0;
-            ShowCurrentSettings();
-            Shown += (s, e) => ShowCurrentSettings();
-        }
-
-        private void ShowCurrentSettings()
-        {
-            if (typeBox.SelectedItem == null)
-                return;
-
-            settingsPanel.Visible = true;
-            settingsPanel.BringToFront();
-            BuildUI((CompressionTypes)typeBox.SelectedItem);
-            settingsPanel.Refresh();
         }
 
         private void BrowseBtn_Click(object? sender, EventArgs e)
@@ -126,7 +113,10 @@ namespace WinFormsApp1
 
         private void TypeBox_SelectedIndexChanged(object? sender, EventArgs e)
         {
-            ShowCurrentSettings();
+            if (!Enum.TryParse(typeBox.SelectedItem?.ToString(), out CompressionTypes type))
+                return;
+
+            BuildUI(type);
         }
 
         private void BuildUI(CompressionTypes type)
@@ -240,9 +230,11 @@ namespace WinFormsApp1
                 return;
             }
 
+            Enum.TryParse(typeBox.SelectedItem?.ToString(), out CompressionTypes selectedType);
+
             Result = new CompressionSettings
             {
-                Type = (CompressionTypes)typeBox.SelectedItem,
+                Type = selectedType,
                 SampleRate = (int)sampleRateInput.Value,
                 SavePath = savePathBox.Text,
                 QuantizationLevels = quantLevelsBox != null ? Convert.ToInt32(quantLevelsBox.SelectedItem) : 0,
@@ -322,11 +314,8 @@ namespace WinFormsApp1
         private void ResetBtn_Click(object? sender, EventArgs e)
         {
             sampleRateInput.Value = sampleRate;
-
-            if (typeBox.Items.Count > 0)
-                typeBox.SelectedIndex = 0;
-
-            ShowCurrentSettings();
+            typeBox.SelectedIndex = 0;
+            BuildUI(CompressionTypes.NonlinearQuant);
         }
 
         private void ResetUI()
@@ -341,7 +330,10 @@ namespace WinFormsApp1
                     ctrl.Visible = true;
             }
 
-            ShowCurrentSettings();
+            if (!Enum.TryParse(typeBox.SelectedItem?.ToString(), out CompressionTypes type))
+                type = CompressionTypes.NonlinearQuant;
+
+            BuildUI(type);
         }
 
         private void CancelBtn_Click(object? sender, EventArgs e)
