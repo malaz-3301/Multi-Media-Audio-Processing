@@ -99,8 +99,20 @@ namespace WinFormsApp1
             Controls.Add(resetBtn);
             Controls.Add(progressPanel);
 
-            typeBox.SelectedItem = CompressionTypes.NonlinearQuant;
-            BuildUI(CompressionTypes.NonlinearQuant);
+            typeBox.SelectedIndex = 0;
+            ShowCurrentSettings();
+            Shown += (s, e) => ShowCurrentSettings();
+        }
+
+        private void ShowCurrentSettings()
+        {
+            if (typeBox.SelectedItem == null)
+                return;
+
+            settingsPanel.Visible = true;
+            settingsPanel.BringToFront();
+            BuildUI((CompressionTypes)typeBox.SelectedItem);
+            settingsPanel.Refresh();
         }
 
         private void BrowseBtn_Click(object? sender, EventArgs e)
@@ -114,10 +126,7 @@ namespace WinFormsApp1
 
         private void TypeBox_SelectedIndexChanged(object? sender, EventArgs e)
         {
-            if (typeBox.SelectedItem == null)
-                return;
-
-            BuildUI((CompressionTypes)typeBox.SelectedItem);
+            ShowCurrentSettings();
         }
 
         private void BuildUI(CompressionTypes type)
@@ -317,7 +326,7 @@ namespace WinFormsApp1
             if (typeBox.Items.Count > 0)
                 typeBox.SelectedIndex = 0;
 
-            BuildUI((CompressionTypes)typeBox.SelectedItem);
+            ShowCurrentSettings();
         }
 
         private void ResetUI()
@@ -331,6 +340,8 @@ namespace WinFormsApp1
                 if (ctrl != progressPanel)
                     ctrl.Visible = true;
             }
+
+            ShowCurrentSettings();
         }
 
         private void CancelBtn_Click(object? sender, EventArgs e)
