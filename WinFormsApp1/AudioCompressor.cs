@@ -61,54 +61,30 @@ public class AudioCompressor
         return result;
     }
 
-    public static (float[] firstSamples, byte[] packedBits, int totalSamples) DeltaModulation(float[] samples)
+    public static (float firstSample, byte[] packedBits, int totalSamples) DeltaModulation(float[] samples)
     {
-        return DeltaModulation(samples, 0.01f, 1);
-    }
+        float firstSample = samples[0];
+        int totalSamplesToCompress = samples.Length - 1;
+        int packedLength = (totalSamplesToCompress + 7) / 8;
+        byte[] packedBits = new byte[packedLength];
 
-    public static (float[] firstSamples, byte[] packedBits, int totalSamples) DeltaModulation(float[] samples, float stepSize, int channels = 1)
-    {
-        if (samples.Length == 0)
-            return (Array.Empty<float>(), Array.Empty<byte>(), 0);
-
-        channels = Math.Max(1, channels);
-        stepSize = Math.Max(MathF.Abs(stepSize), 0.001f);
-
-        int firstCount = Math.Min(channels, samples.Length);
-        float[] firstSamples = new float[firstCount];
-        float[] reconstructed = new float[channels];
-
-        for (int i = 0; i < firstCount; i++)
-        {
-            firstSamples[i] = Math.Clamp(samples[i], -1f, 1f);
-            reconstructed[i] = firstSamples[i];
-        }
-
-        int samplesToCompress = samples.Length - firstCount;
-        byte[] packedBits = new byte[(samplesToCompress + 7) / 8];
-
-        for (int i = firstCount; i < samples.Length; i++)
+        for (int i = 1; i < samples.Length; i++)
         {
             CompressionManager.CheckCancellation();
 
-            int channel = i % channels;
-            float currentSample = Math.Clamp(samples[i], -1f, 1f);
-            bool isUp = currentSample >= reconstructed[channel];
-            int packedIndex = i - firstCount;
+            bool isUp = samples[i] > samples[i - 1];
 
             if (isUp)
             {
-                int byteIndex = packedIndex / 8;
-                int bitIndex = packedIndex % 8;
+                int byteIndex = (i - 1) / 8;
+                int bitIndex = (i - 1) % 8;
                 packedBits[byteIndex] |= (byte)(1 << (7 - bitIndex));
             }
 
-            reconstructed[channel] += isUp ? stepSize : -stepSize;
-            reconstructed[channel] = Math.Clamp(reconstructed[channel], -1f, 1f);
             UpdateProgress(i, samples.Length);
         }
 
-        return (firstSamples, packedBits, samples.Length);
+        return (firstSample, packedBits, samples.Length);
     }
 
     public static (float[] firstSamples, float quantizeFactor, sbyte[] compressedSamples) DPCM(float[] samples, float quantizationFactor, int channels = 1)
