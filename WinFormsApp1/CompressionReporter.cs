@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Text;
 
@@ -37,24 +37,25 @@ namespace WinFormsApp1
             compedFile = new FileInfo(filePath);
         }
 
-        // --- NEW REPORT GENERATION FUNCTION ---
         public static string GenerateReport()
         {
+            origFile?.Refresh();
+            compedFile?.Refresh();
+
             StringBuilder sb = new StringBuilder();
             TimeSpan duration = compEndTime - compStartTime;
+            long origSize = origFile != null && origFile.Exists ? origFile.Length : 0;
+            long compSize = compedFile != null && compedFile.Exists ? compedFile.Length : 0;
 
             sb.AppendLine("========================================");
             sb.AppendLine("          COMPRESSION REPORT            ");
             sb.AppendLine("========================================");
-
-            // 1. Time / Duration Information
             sb.AppendLine($"Start Time:  {compStartTime:yyyy-MM-dd HH:mm:ss}");
             sb.AppendLine($"End Time:    {compEndTime:yyyy-MM-dd HH:mm:ss}");
             sb.AppendLine($"Duration:    {duration.TotalSeconds:F2} seconds");
             sb.AppendLine("----------------------------------------");
-
-            // 2. Settings Configuration (Handles null fallback safely)
             sb.AppendLine("Configuration Settings:");
+
             if (compSettings != null)
             {
                 sb.AppendLine($"  - Algorithm Type:       {compSettings.Type}");
@@ -65,45 +66,35 @@ namespace WinFormsApp1
             }
             else
             {
-                sb.AppendLine("  - [No settings recorded]");
+                sb.AppendLine("  - No settings recorded");
             }
+
             sb.AppendLine("----------------------------------------");
-
-            // 3. File Metrics & Size Reduction Analysis
             sb.AppendLine("File Metrics:");
-
-            long origSize = (origFile != null && origFile.Exists) ? origFile.Length : 0;
-            long compSize = (compedFile != null && compedFile.Exists) ? compedFile.Length : 0;
-
             sb.AppendLine($"  - Original File:        {origFile?.Name ?? "Unknown"} ({FormatBytes(origSize)})");
             sb.AppendLine($"  - Compressed File:      {compedFile?.Name ?? "Unknown"} ({FormatBytes(compSize)})");
 
-            // Reduction ratio math
-            if (origSize > 0)
+            if (origSize > 0 && compSize > 0)
             {
-                double reductionPercent = ((double)(origSize - compSize) / origSize) * 100.0;
+                double savingPercent = ((double)(origSize - compSize) / origSize) * 100.0;
+                double ratio = (double)origSize / compSize;
+                sb.AppendLine($"  - Compression Ratio:    {ratio:F2}:1");
 
-                // Represent compression or expansion appropriately
-                if (reductionPercent >= 0)
-                {
-                    sb.AppendLine($"  - Size Reduction:       {reductionPercent:F2}% smaller");
-                }
+                if (savingPercent >= 0)
+                    sb.AppendLine($"  - Size Saving:          {savingPercent:F2}%");
                 else
-                {
-                    sb.AppendLine($"  - Size Expansion:       {Math.Abs(reductionPercent):F2}% larger");
-                }
+                    sb.AppendLine($"  - Size Expansion:       {Math.Abs(savingPercent):F2}%");
             }
             else
             {
-                sb.AppendLine("  - Size Reduction:       0.00% (Original file size missing or empty)");
+                sb.AppendLine("  - Compression Ratio:    Not available");
+                sb.AppendLine("  - Size Saving:          Not available");
             }
 
             sb.AppendLine("========================================");
-
             return sb.ToString();
         }
 
-        // Helper method to make sizes human-readable (KB / MB instead of just raw bytes)
         private static string FormatBytes(long bytes)
         {
             string[] suffixes = { "Bytes", "KB", "MB", "GB" };

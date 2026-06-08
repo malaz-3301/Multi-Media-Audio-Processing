@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System;
+using System.IO;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
 
@@ -12,29 +9,15 @@ namespace WinFormsApp1
     {
         public static void ExportFloatArrayToWav(string outputWavPath, float[] decompressedSamples, int sampleRate = 44100, int channels = 1, int bitsPerSample = 16)
         {
-            WaveFormat waveFormat;
-
-            if (bitsPerSample == 32)
-            {
-                waveFormat = WaveFormat.CreateIeeeFloatWaveFormat(sampleRate, channels);
-            }
-            else if (bitsPerSample != 16 && bitsPerSample != 24)
-            {
-                waveFormat = new WaveFormat(sampleRate, 16, channels);
-            }
-            else
-            {
-                waveFormat = new WaveFormat(sampleRate, bitsPerSample, channels);
-            }
-
-            using (WaveFileWriter writer = new WaveFileWriter(outputWavPath, waveFormat))
-            {
-                writer.WriteSamples(decompressedSamples, 0, decompressedSamples.Length);
-            }
+            var sampleProvider = new ArraySampleProvider(decompressedSamples, sampleRate, channels);
+            WaveFileWriter.CreateWaveFile16(outputWavPath, sampleProvider);
         }
 
         public static void ExportFloatArrayToMP3(string outputMp3Path, float[] decompressedSamples, int sampleRate = 44100, int channels = 1, int bitRate = 192000)
         {
+            bitRate = bitRate <= 0 ? 128000 : bitRate;
+            bitRate = bitRate < 1000 ? bitRate * 1000 : bitRate;
+
             byte[] byteArray = new byte[decompressedSamples.Length * sizeof(float)];
             Buffer.BlockCopy(decompressedSamples, 0, byteArray, 0, byteArray.Length);
             WaveFormat floatFormat = WaveFormat.CreateIeeeFloatWaveFormat(sampleRate, channels);
@@ -49,4 +32,3 @@ namespace WinFormsApp1
         }
     }
 }
-

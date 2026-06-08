@@ -1,72 +1,85 @@
-﻿using System;
-using System.Threading;
-
-using NAudio.Wave;
+using System;
 
 public class AudioCompressor
 {
-    private static int _lastReportedPercent = -1;
+    private static int lastPercent = -1;
     public static int samplesProcessed = 0;
 
-    private static void updateProgress(int sampleIndex, int numOfSamples)
+    public static void ResetCounters()
     {
-        if (sampleIndex == numOfSamples - 1)
-        {
-            CompressionManager.ReportProgress(100);
-            _lastReportedPercent = -1; 
-            return;
-        }
-        samplesProcessed++;
-        int currentPercent = (int)(((long)sampleIndex * 100) / numOfSamples);
-        if (currentPercent > _lastReportedPercent)
-        {
-            _lastReportedPercent = currentPercent;
-            CompressionManager.ReportProgress(currentPercent);
-            System.Threading.Thread.Sleep(150);
-        }
-        
-    }
-    public static int getSamplesProcessed() {
-        int temp = samplesProcessed;
+        lastPercent = -1;
         samplesProcessed = 0;
-        return temp;
-    
     }
 
-    public static sbyte[] NonLinear_Quantizer(float[]samples,int quantLevel){
-        
-        sbyte[] bits = new sbyte[samples.Length];
+    public static int GetSamplesProcessed()
+    {
+        int value = samplesProcessed;
+        samplesProcessed = 0;
+        return value;
+    }
 
-        const float LogMuPlusOne = 5.54517f;
+    public static int getSamplesProcessed()
+    {
+        return GetSamplesProcessed();
+    }
 
+    private static void UpdateProgress(int index, int total)
+    {
+        samplesProcessed++;
+        int percent = total <= 0 ? 100 : (int)(((long)(index + 1) * 100) / total);
+
+        if (percent > lastPercent)
+        {
+            lastPercent = percent;
+            CompressionManager.ReportProgress(Math.Clamp(percent, 0, 100));
+
+            if (percent >= 100)
+                lastPercent = -1;
+        }
+    }
+
+    public static sbyte[] NonLinear_Quantizer(float[] samples, int quantLevel)
+    {
+        quantLevel = Math.Max(2, quantLevel);
+        sbyte[] result = new sbyte[samples.Length];
+        const float logMuPlusOne = 5.54517f;
         float maxLevel = (quantLevel - 1) / 2f;
 
         for (int i = 0; i < samples.Length; i++)
         {
             CompressionManager.CheckCancellation();
-            float currentVal = samples[i];
-            float compressedVal = MathF.Log(1f + 255f * Math.Abs(samples[i])) / LogMuPlusOne;
-            if (currentVal < 0) compressedVal *= -1;
-            float quantized = (compressedVal * maxLevel);
-            bits[i]=(sbyte)Math.Clamp(MathF.Round(quantized), -128, 127);
-            updateProgress(i, samples.Length);
-        }
-        return bits;
+            float sample = Math.Clamp(samples[i], -1f, 1f);
+            float compressed = MathF.Log(1f + 255f * MathF.Abs(sample)) / logMuPlusOne;
 
+            if (sample < 0)
+                compressed *= -1;
+
+            result[i] = (sbyte)Math.Clamp((int)MathF.Round(compressed * maxLevel), -128, 127);
+            UpdateProgress(i, samples.Length);
+        }
+
+        return result;
     }
 
-    public static (float firstSample, byte[] packedBits,int totalSamples) DeltaModulation(float[] samples)
+    public static (float firstSample, byte[] packedBits, int totalSamples) DeltaModulation(float[] samples)
     {
-        float firstSample = samples[0];
-        int totalSamplesToCompress = samples.Length - 1;
-        int packedLength = (totalSamplesToCompress + 7) / 8; 
-        byte[] packedBits = new byte[packedLength];
+        return DeltaModulation(samples, CompressionSettings.CurrentDeltaStepSize);
+    }
+
+    public static (float firstSample, byte[] packedBits, int totalSamples) DeltaModulation(float[] samples, float stepSize)
+    {
+        if (samples.Length == 0)
+            return (0f, Array.Empty<byte>(), 0);
+
+        stepSize = Math.Max(MathF.Abs(stepSize), 0.001f);
+        float firstSample = Math.Clamp(samples[0], -1f, 1f);
+        float reconstructed = firstSample;
+        byte[] packedBits = new byte[(samples.Length - 1 + 7) / 8];
 
         for (int i = 1; i < samples.Length; i++)
         {
             CompressionManager.CheckCancellation();
-
-            bool isUp = samples[i] > samples[i - 1];
+            bool isUp = Math.Clamp(samples[i], -1f, 1f) >= reconstructed;
 
             if (isUp)
             {
@@ -75,29 +88,35 @@ public class AudioCompressor
                 packedBits[byteIndex] |= (byte)(1 << (7 - bitIndex));
             }
 
-            updateProgress(i, samples.Length);
+            reconstructed += isUp ? stepSize : -stepSize;
+            reconstructed = Math.Clamp(reconstructed, -1f, 1f);
+            UpdateProgress(i, samples.Length);
         }
 
         return (firstSample, packedBits, samples.Length);
     }
-    public static (float firstSample, float quantizeFactor,sbyte[] compressedSamples) DPCM(float[]samples,float quantizationFactor) {
-        
 
-        float firstSample = samples[0];             
+    public static (float firstSample, float quantizeFactor, sbyte[] compressedSamples) DPCM(float[] samples, float quantizationFactor)
+    {
+        if (samples.Length == 0)
+            return (0f, quantizationFactor, Array.Empty<sbyte>());
 
-        sbyte[] compressedSamples = new sbyte[samples.Length - 1];
+        quantizationFactor = Math.Max(MathF.Abs(quantizationFactor), 1f);
+        float firstSample = Math.Clamp(samples[0], -1f, 1f);
+        float reconstructed = firstSample;
+        sbyte[] result = new sbyte[samples.Length - 1];
 
         for (int i = 1; i < samples.Length; i++)
         {
             CompressionManager.CheckCancellation();
-            float diff = samples[i] - samples[i - 1];
-
-            compressedSamples[i - 1] = (sbyte)(Math.Clamp((diff * quantizationFactor), -128, 127));
-            updateProgress(i, samples.Length);
-
+            float diff = Math.Clamp(samples[i], -1f, 1f) - reconstructed;
+            int quantized = Math.Clamp((int)MathF.Round(diff * quantizationFactor), -128, 127);
+            result[i - 1] = (sbyte)quantized;
+            reconstructed += quantized / quantizationFactor;
+            reconstructed = Math.Clamp(reconstructed, -1f, 1f);
+            UpdateProgress(i, samples.Length);
         }
-        return (firstSample,quantizationFactor ,compressedSamples);
-    }
 
-    
+        return (firstSample, quantizationFactor, result);
+    }
 }
