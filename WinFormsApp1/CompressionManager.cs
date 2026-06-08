@@ -10,7 +10,6 @@ public class CompressionManager
     private static System.Threading.Timer timer;
     private static bool running = false;
     private static int recordedSeconds = 0;
-    private static int lastChartPercent = -1;
     private static CompressionTypes currentType;
     private static AudioFileInfo audioInfo;
 
@@ -20,17 +19,16 @@ public class CompressionManager
         AudioCompressor.ResetCounters();
         currentType = compSett.Type;
         recordedSeconds = 0;
-        lastChartPercent = -1;
-        audioInfo = audioFileInfo;
-        progress = prog;
-        token = tkn;
-
         initalizeTimer();
         CompressionReporter.StartCompression();
         CompressionReporter.recordCompressionSettings(compSett);
+        audioInfo = audioFileInfo;
         string outPath = GetOutputPath(compSett);
         CompressionReporter.recordCompedFile(outPath);
         CompressionReporter.recordOrigFile(origFilePath);
+
+        progress = prog;
+        token = tkn;
 
         try
         {
@@ -47,7 +45,6 @@ public class CompressionManager
                     break;
             }
 
-            AddChartPoint(100);
             CompressionReporter.EndCompression();
         }
         finally
@@ -60,26 +57,38 @@ public class CompressionManager
     static void Tick(object state)
     {
         if (!running)
+        {
+            timer?.Dispose();
             return;
+        }
 
-        AddChartPoint(-1);
+        int samples = AudioCompressor.getSamplesProcessed();
+        recordedSeconds += 1;
+
+        double spaceSavedPercentage = 0.0;
+        switch (currentType)
+        {
+            case CompressionTypes.DeltaModulation:
+                spaceSavedPercentage = ((audioInfo.bitsPerSample - 1.0) / 32.0) * 100.0;
+                break;
+            case CompressionTypes.NonlinearQuant:
+            case CompressionTypes.DPCM:
+                spaceSavedPercentage = ((audioInfo.bitsPerSample - 8.0) / 32.0) * 100.0;
+                break;
+        }
+
+        CompressionChartController.AddPoint(recordedSeconds, samples, spaceSavedPercentage);
     }
 
     private static void initalizeTimer()
     {
         running = true;
-        timer = new System.Threading.Timer(Tick, null, 0, 500);
+        timer = new System.Threading.Timer(Tick, null, 0, 1000);
     }
 
     public static void ReportProgress(int percent)
     {
         progress?.Report(percent);
-
-        if (percent == 100 || percent - lastChartPercent >= 5)
-        {
-            lastChartPercent = percent;
-            AddChartPoint(percent);
-        }
     }
 
     public static void CheckCancellation()
@@ -125,27 +134,5 @@ public class CompressionManager
         float quantFactor = compSett.QuantizationFactor;
         var compResult = AudioCompressor.DPCM(samples, quantFactor, audioInfo.channels);
         FileSaver.SaveDPCM(outPath, compResult.firstSamples, compResult.compressedSamples, quantFactor, compSett.SampleRate, audioInfo);
-    }
-
-    private static void AddChartPoint(int percent)
-    {
-        int samples = AudioCompressor.getSamplesProcessed();
-        recordedSeconds += 1;
-        double saving = GetSpaceSavedPercentage();
-        CompressionChartController.AddPoint(recordedSeconds, samples, saving);
-    }
-
-    private static double GetSpaceSavedPercentage()
-    {
-        switch (currentType)
-        {
-            case CompressionTypes.DeltaModulation:
-                return ((audioInfo.bitsPerSample - 1.0) / audioInfo.bitsPerSample) * 100.0;
-            case CompressionTypes.NonlinearQuant:
-            case CompressionTypes.DPCM:
-                return ((audioInfo.bitsPerSample - 8.0) / audioInfo.bitsPerSample) * 100.0;
-            default:
-                return 0.0;
-        }
     }
 }

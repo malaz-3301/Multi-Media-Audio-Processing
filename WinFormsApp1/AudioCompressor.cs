@@ -2,40 +2,40 @@ using System;
 
 public class AudioCompressor
 {
-    private static int lastPercent = -1;
+    private static int _lastReportedPercent = -1;
     public static int samplesProcessed = 0;
 
     public static void ResetCounters()
     {
-        lastPercent = -1;
+        _lastReportedPercent = -1;
         samplesProcessed = 0;
     }
 
-    public static int GetSamplesProcessed()
+    private static void updateProgress(int sampleIndex, int numOfSamples)
     {
-        int value = samplesProcessed;
-        samplesProcessed = 0;
-        return value;
+        if (sampleIndex == numOfSamples - 1)
+        {
+            CompressionManager.ReportProgress(100);
+            _lastReportedPercent = -1;
+            return;
+        }
+
+        samplesProcessed++;
+        int currentPercent = (int)(((long)sampleIndex * 100) / numOfSamples);
+
+        if (currentPercent > _lastReportedPercent)
+        {
+            _lastReportedPercent = currentPercent;
+            CompressionManager.ReportProgress(currentPercent);
+            System.Threading.Thread.Sleep(150);
+        }
     }
 
     public static int getSamplesProcessed()
     {
-        return GetSamplesProcessed();
-    }
-
-    private static void UpdateProgress(int index, int total)
-    {
-        samplesProcessed++;
-        int percent = total <= 0 ? 100 : (int)(((long)(index + 1) * 100) / total);
-
-        if (percent > lastPercent)
-        {
-            lastPercent = percent;
-            CompressionManager.ReportProgress(Math.Clamp(percent, 0, 100));
-
-            if (percent >= 100)
-                lastPercent = -1;
-        }
+        int temp = samplesProcessed;
+        samplesProcessed = 0;
+        return temp;
     }
 
     public static sbyte[] NonLinear_Quantizer(float[] samples, int quantLevel)
@@ -55,7 +55,7 @@ public class AudioCompressor
                 compressed *= -1;
 
             result[i] = (sbyte)Math.Clamp((int)MathF.Round(compressed * maxLevel), -128, 127);
-            UpdateProgress(i, samples.Length);
+            updateProgress(i, samples.Length);
         }
 
         return result;
@@ -81,7 +81,7 @@ public class AudioCompressor
                 packedBits[byteIndex] |= (byte)(1 << (7 - bitIndex));
             }
 
-            UpdateProgress(i, samples.Length);
+            updateProgress(i, samples.Length);
         }
 
         return (firstSample, packedBits, samples.Length);
@@ -117,7 +117,7 @@ public class AudioCompressor
             result[i - firstCount] = (sbyte)quantized;
             reconstructed[channel] += quantized / quantizationFactor;
             reconstructed[channel] = Math.Clamp(reconstructed[channel], -1f, 1f);
-            UpdateProgress(i, samples.Length);
+            updateProgress(i, samples.Length);
         }
 
         return (firstSamples, quantizationFactor, result);
