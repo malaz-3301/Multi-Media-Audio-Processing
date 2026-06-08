@@ -104,8 +104,13 @@ namespace WinFormsApp1
 
         private void CompressionDialog_Load(object? sender, EventArgs e)
         {
-            if (typeBox.Items.Count > 0)
+            if (typeBox.Items.Count == 0)
+                return;
+
+            if (typeBox.SelectedIndex < 0)
                 typeBox.SelectedIndex = 0;
+
+            BuildUI((CompressionTypes)typeBox.SelectedItem);
         }
 
         private void BrowseBtn_Click(object? sender, EventArgs e)
