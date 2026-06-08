@@ -108,8 +108,8 @@ public class CompressionManager
     static void handleDeltaCompress(AudioFileReader reader, CompressionSettings compSett, string outPath)
     {
         float[] samples = SamplesHelper.GetResampledSamples(reader, compSett.SampleRate);
-        var compResult = AudioCompressor.DeltaModulation(samples, compSett.StepSize, audioInfo.channels);
-        FileSaver.SaveDeltaModulation(outPath, compResult.packedBits, compResult.firstSamples, compSett.StepSize, compResult.totalSamples, compSett.SampleRate, audioInfo);
+        var compResult = AudioCompressor.DeltaModulation(samples);
+        FileSaver.SaveDeltaModulation(outPath, compResult.packedBits, compResult.firstSample, compSett.StepSize, compResult.totalSamples, compSett.SampleRate, audioInfo);
     }
 
     static void handleNonLinearQuant(AudioFileReader reader, CompressionSettings compSett, string outPath)
