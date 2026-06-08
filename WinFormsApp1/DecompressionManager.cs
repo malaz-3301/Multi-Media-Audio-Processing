@@ -16,11 +16,22 @@ namespace WinFormsApp1
 
             if (InvResults.decompressedSamples.Length == 0) return;
 
-            outputPath += ".wav";
-            FileWriter.ExportFloatArrayToWav(outputPath, InvResults.decompressedSamples,
-                sampleRate: InvResults.audioFileInfo.sampleRate,
-                channels: InvResults.audioFileInfo.channels,
-                bitsPerSample: 16);
+            if (!InvResults.audioFileInfo.isMP3)
+            {
+                outputPath += ".wav";
+                FileWriter.ExportFloatArrayToWav(outputPath, InvResults.decompressedSamples,
+                    sampleRate: InvResults.audioFileInfo.sampleRate,
+                    channels: InvResults.audioFileInfo.channels,
+                    bitsPerSample: InvResults.audioFileInfo.bitsPerSample);
+            }
+            else
+            {
+                outputPath += ".mp3";
+                FileWriter.ExportFloatArrayToMP3(outputPath, InvResults.decompressedSamples,
+                    sampleRate: InvResults.audioFileInfo.sampleRate,
+                    channels: InvResults.audioFileInfo.channels,
+                    bitRate: InvResults.audioFileInfo.bitRate);
+            }
 
             static (AudioFileInfo audioFileInfo, float[] decompressedSamples) HandleNonLinearQuant(string filePath)
             {
